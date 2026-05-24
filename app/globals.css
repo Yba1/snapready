@@ -2,10 +2,160 @@
 
 @theme inline {
   --font-sans: var(--font-geist);
-  --color-accent: #e11d48;
-  --color-accent-hover: #be123c;
+  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-instrument-serif);
 }
 
-body {
-  font-family: var(--font-geist), Arial, sans-serif;
+:root {
+  --bg: #0a0a0a;
+  --ink: #f7f5f4;
+  --ink-dim: #a8a3a0;
+  --ink-faint: #6b6562;
+  --rose: #e11d48;
+  --rose-soft: #f43f5e;
+  --plum: #4a1535;
+  --line: rgba(255,255,255,0.10);
+  --line-2: rgba(255,255,255,0.06);
 }
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--font-geist), system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body { overflow-x: hidden; min-height: 100vh; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+a { color: inherit; text-decoration: none; }
+::selection { background: var(--rose); color: white; }
+
+/* ── Animated background ── */
+.bg-stage { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: var(--bg); }
+.bg-mesh {
+  position: absolute; inset: -20%;
+  background:
+    radial-gradient(40% 35% at 20% 25%, rgba(225,29,72,0.30), transparent 70%),
+    radial-gradient(35% 30% at 80% 15%, rgba(120,40,90,0.28), transparent 70%),
+    radial-gradient(45% 40% at 70% 80%, rgba(60,20,80,0.30), transparent 70%),
+    radial-gradient(30% 30% at 10% 90%, rgba(225,29,72,0.18), transparent 70%);
+  filter: blur(40px) saturate(1.1);
+  animation: meshDrift 22s ease-in-out infinite alternate;
+}
+@keyframes meshDrift {
+  0%   { transform: translate3d(0,0,0) scale(1); }
+  50%  { transform: translate3d(-3%,2%,0) scale(1.05); }
+  100% { transform: translate3d(2%,-1%,0) scale(1.02); }
+}
+.bg-orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.55; mix-blend-mode: screen; }
+.bg-orb.o1 { width:520px;height:520px; background:radial-gradient(circle,#e11d48,transparent 65%); top:-10%;left:-8%; animation:orb1 28s ease-in-out infinite alternate; }
+.bg-orb.o2 { width:460px;height:460px; background:radial-gradient(circle,#6d28d9,transparent 65%); top:30%;right:-10%; animation:orb2 32s ease-in-out infinite alternate; }
+.bg-orb.o3 { width:380px;height:380px; background:radial-gradient(circle,#831843,transparent 65%); bottom:-8%;left:30%; animation:orb3 36s ease-in-out infinite alternate; }
+@keyframes orb1 { from{transform:translate(0,0)} to{transform:translate(80px,120px)} }
+@keyframes orb2 { from{transform:translate(0,0)} to{transform:translate(-100px,60px)} }
+@keyframes orb3 { from{transform:translate(0,0)} to{transform:translate(60px,-80px)} }
+.bg-noise {
+  position:absolute;inset:0;opacity:0.10;mix-blend-mode:overlay;pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.bg-vignette { position:absolute;inset:0; background:radial-gradient(120% 80% at 50% 0%,transparent 40%,rgba(0,0,0,0.55) 100%); }
+
+/* ── Glass ── */
+.glass {
+  background: linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025));
+  border: 1px solid var(--line);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border-radius: 18px;
+}
+
+/* ── Pills ── */
+.pill { display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;letter-spacing:-0.01em;transition:transform .2s ease,box-shadow .3s ease;cursor:pointer; }
+.pill-rose { background:linear-gradient(180deg,#f43f5e,#e11d48);color:white;animation:pillPulse 3.2s ease-in-out infinite; }
+.pill-rose:hover { transform:translateY(-1px);box-shadow:0 0 0 6px rgba(225,29,72,0.18),0 12px 36px -8px rgba(225,29,72,0.75); }
+.pill-rose:active { transform:translateY(0) scale(0.98); }
+@keyframes pillPulse {
+  0%,100%{box-shadow:0 0 0 0 rgba(225,29,72,0),0 8px 24px -8px rgba(225,29,72,0.55)}
+  50%{box-shadow:0 0 0 8px rgba(225,29,72,0.10),0 8px 24px -8px rgba(225,29,72,0.75)}
+}
+.pill-ghost { border:1px solid var(--line);background:rgba(255,255,255,0.03);color:var(--ink); }
+.pill-ghost:hover { background:rgba(255,255,255,0.07); }
+
+/* ── Type utils ── */
+.mono { font-family:var(--font-geist-mono),ui-monospace,monospace; }
+.serif { font-family:var(--font-instrument-serif,"Instrument Serif"),serif;font-style:italic;font-weight:400; }
+.shimmer {
+  background:linear-gradient(110deg,#fecdd3 10%,#e11d48 30%,#fb7185 50%,#e11d48 70%,#fecdd3 90%);
+  background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:shimmerMove 4s linear infinite;
+  font-style:italic;font-family:var(--font-instrument-serif,"Instrument Serif"),serif;font-weight:400;
+}
+@keyframes shimmerMove { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── Entry animations ── */
+.fade-up { opacity:0;transform:translateY(14px);animation:fadeUp .9s cubic-bezier(.2,.7,.2,1) forwards; }
+.fade-up.d1{animation-delay:.10s} .fade-up.d2{animation-delay:.25s} .fade-up.d3{animation-delay:.42s}
+.fade-up.d4{animation-delay:.60s} .fade-up.d5{animation-delay:.78s}
+@keyframes fadeUp { to{opacity:1;transform:translateY(0)} }
+
+.page-enter { animation:pageEnter .6s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes pageEnter { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+.reveal { opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1); }
+.reveal.in { opacity:1;transform:translateY(0); }
+
+.float { animation:floatY 6s ease-in-out infinite alternate; }
+@keyframes floatY { from{transform:translateY(0)} to{transform:translateY(-10px)} }
+
+.spring-pop { animation:springPop .55s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes springPop {
+  0%{opacity:0;transform:scale(.6)} 60%{opacity:1;transform:scale(1.08)} 100%{opacity:1;transform:scale(1)}
+}
+
+.slide-left { animation:slideLeft .8s cubic-bezier(.2,.7,.2,1) both; }
+.slide-right { animation:slideRight .8s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes slideLeft { from{opacity:0;transform:translateX(-60px)} to{opacity:1;transform:translateX(0)} }
+@keyframes slideRight { from{opacity:0;transform:translateX(60px)} to{opacity:1;transform:translateX(0)} }
+
+/* ── Rotating dashed border ── */
+.dash-rot {
+  position:absolute;inset:0;border-radius:inherit;
+  border:1.5px dashed rgba(225,29,72,0.45);
+  pointer-events:none;
+  animation:dashSpin 14s linear infinite;
+  opacity:0.6;transition:opacity .3s ease,border-color .3s ease;
+}
+.dash-rot.fast { animation-duration:3s;opacity:1;border-color:rgba(225,29,72,0.9); }
+@keyframes dashSpin { to{transform:rotate(360deg)} }
+
+/* ── Checker ── */
+.checker {
+  background-image:
+    linear-gradient(45deg,rgba(255,255,255,0.07) 25%,transparent 25%),
+    linear-gradient(-45deg,rgba(255,255,255,0.07) 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,rgba(255,255,255,0.07) 75%),
+    linear-gradient(-45deg,transparent 75%,rgba(255,255,255,0.07) 75%);
+  background-size:18px 18px;
+  background-position:0 0,0 9px,9px -9px,-9px 0;
+  background-color:#1a1517;
+}
+
+/* ── Ripple ── */
+.ripple-host { position:relative;overflow:hidden; }
+.ripple-dot { position:absolute;border-radius:50%;background:rgba(255,255,255,0.22);transform:scale(0);animation:rippleOut .65s ease-out forwards;pointer-events:none; }
+@keyframes rippleOut { to{transform:scale(4);opacity:0} }
+
+/* ── Caret ── */
+.caret::after { content:"▍";display:inline-block;margin-left:2px;color:var(--rose);animation:blink 1s steps(1) infinite; }
+@keyframes blink { 50%{opacity:0} }
+
+/* ── Loading dots ── */
+.dots span { display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--rose);margin:0 2px;animation:dotPulse 1.2s ease-in-out infinite; }
+.dots span:nth-child(2){animation-delay:.15s} .dots span:nth-child(3){animation-delay:.30s}
+@keyframes dotPulse { 0%,80%,100%{transform:scale(.55);opacity:.35} 40%{transform:scale(1.1);opacity:1} }
+
+/* ── Skeleton ── */
+.skeleton-shimmer {
+  background:linear-gradient(110deg,rgba(255,255,255,0.02) 30%,rgba(225,29,72,0.08) 50%,rgba(255,255,255,0.02) 70%);
+  background-size:200% 100%;animation:skelMove 1.8s linear infinite;
+}
+@keyframes skelMove { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+@keyframes spin { to{transform:rotate(360deg)} }
+@keyframes loadBar { 0%{width:0} 60%{width:80%} 100%{width:0} }

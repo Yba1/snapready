@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
+});
 
 export const metadata: Metadata = {
   title: "SnapReady — Depop photos that actually sell",
@@ -16,8 +23,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={geist.variable}>
-      <body className="bg-white text-gray-900 antialiased">{children}</body>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable}`}>
+      <body>
+        <div className="bg-stage">
+          <div className="bg-mesh" />
+          <div className="bg-orb o1" />
+          <div className="bg-orb o2" />
+          <div className="bg-orb o3" />
+          <div className="bg-noise" />
+          <div className="bg-vignette" />
+        </div>
+        <div id="snap-root">{children}</div>
+      </body>
     </html>
   );
 }
