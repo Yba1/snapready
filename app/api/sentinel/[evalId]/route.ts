@@ -10,7 +10,7 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
       `https://sentinel.runflow.io/api/v1/evaluate/${evalId}`,
       {
         headers: {
-          "x-api-key": process.env.RUNFLOW_API_KEY ?? "",
+          "x-api-key": process.env.SENTINEL_API_KEY ?? process.env.RUNFLOW_API_KEY ?? "",
         },
       }
     );

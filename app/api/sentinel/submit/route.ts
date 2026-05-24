@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": process.env.RUNFLOW_API_KEY ?? "",
+          "x-api-key": process.env.SENTINEL_API_KEY ?? process.env.RUNFLOW_API_KEY ?? "",
         },
         body: JSON.stringify(body),
       }
