@@ -2,10 +2,27 @@ import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { imageUrl } = await request.json();
+    const { imageUrl, originalUrl } = await request.json();
 
     if (!imageUrl) {
       return Response.json({ error: "imageUrl is required" }, { status: 400 });
+    }
+
+    const body: Record<string, unknown> = {
+      generated_image_url: imageUrl,
+      task_type: "background-removal",
+      task_description:
+        "Remove the background from a product photo and crop to square 1:1 format for a Depop marketplace listing. The subject should be cleanly isolated on a transparent background.",
+    };
+
+    if (originalUrl) {
+      body.reference_images = [
+        {
+          url: originalUrl,
+          role: "subject",
+          description: "Original photo before background removal.",
+        },
+      ];
     }
 
     const res = await fetch(
@@ -16,18 +33,13 @@ export async function POST(request: NextRequest) {
           "Content-Type": "application/json",
           "x-api-key": process.env.RUNFLOW_API_KEY ?? "",
         },
-        body: JSON.stringify({
-          generated_image_url: imageUrl,
-          task_type: "product_photo",
-          task_description:
-            "Product photo with background removed, cropped to square 1:1 format for a marketplace listing.",
-        }),
+        body: JSON.stringify(body),
       }
     );
 
     if (!res.ok) {
-      const body = await res.text();
-      return Response.json({ error: `Sentinel error: ${body}` }, { status: res.status });
+      const text = await res.text();
+      return Response.json({ error: `Sentinel error: ${text}` }, { status: res.status });
     }
 
     const data = await res.json();

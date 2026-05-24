@@ -19,48 +19,48 @@ export default function ToolClient() {
   const [sentinelVerdict, setSentinelVerdict] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const sentinelIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sentinelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
-      if (sentinelIntervalRef.current) clearInterval(sentinelIntervalRef.current);
+      if (sentinelTimerRef.current) clearTimeout(sentinelTimerRef.current);
     };
   }, []);
 
   const startSentinelPolling = useCallback((evalId: string) => {
+    let attempts = 0;
+    const maxAttempts = 16; // 25s + 16×15s ≈ 4.5 min max
+
     const poll = async () => {
+      attempts++;
       try {
         const res = await fetch(`/api/sentinel/${evalId}`);
         if (!res.ok) throw new Error("Poll failed");
         const data = await res.json();
 
-        if (data.status === "completed") {
-          setSentinelScore(Math.round((data.weighted_pass_rate ?? 0) * 100));
-          setSentinelVerdict(data.verdict ?? null);
-          setSentinelStatus("done");
-          if (sentinelIntervalRef.current) {
-            clearInterval(sentinelIntervalRef.current);
-            sentinelIntervalRef.current = null;
+        if (data.status !== "running") {
+          if (data.status === "completed") {
+            const rate = data.weighted_pass_rate ?? data.score ?? 0;
+            setSentinelScore(Math.round(rate * 100));
+            setSentinelVerdict(data.verdict ?? null);
+            setSentinelStatus("done");
+          } else {
+            setSentinelStatus("error");
           }
-        } else if (data.status === "failed") {
+          return;
+        }
+
+        if (attempts < maxAttempts) {
+          sentinelTimerRef.current = setTimeout(poll, 15_000);
+        } else {
           setSentinelStatus("error");
-          if (sentinelIntervalRef.current) {
-            clearInterval(sentinelIntervalRef.current);
-            sentinelIntervalRef.current = null;
-          }
         }
       } catch {
         setSentinelStatus("error");
-        if (sentinelIntervalRef.current) {
-          clearInterval(sentinelIntervalRef.current);
-          sentinelIntervalRef.current = null;
-        }
       }
     };
 
-    // First check after 20s, then every 15s
-    setTimeout(poll, 20_000);
-    sentinelIntervalRef.current = setInterval(poll, 15_000);
+    sentinelTimerRef.current = setTimeout(poll, 25_000);
   }, []);
 
   const handleFile = useCallback(
@@ -79,7 +79,7 @@ export default function ToolClient() {
       setSentinelStatus("idle");
       setSentinelScore(null);
       setSentinelVerdict(null);
-      if (sentinelIntervalRef.current) clearInterval(sentinelIntervalRef.current);
+      if (sentinelTimerRef.current) clearTimeout(sentinelTimerRef.current);
 
       const localPreview = URL.createObjectURL(file);
       setPhase("uploading");
@@ -142,10 +142,12 @@ export default function ToolClient() {
           const sentinelRes = await fetch("/api/sentinel/submit", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ imageUrl: processedUrl }),
+            body: JSON.stringify({ imageUrl: processedUrl, originalUrl: blobUrl }),
           });
           if (!sentinelRes.ok) throw new Error("Sentinel submit failed");
-          const { evalId } = await sentinelRes.json();
+          const sentinelData = await sentinelRes.json();
+          const evalId: string | undefined = sentinelData.evalId;
+          if (!evalId) throw new Error("No eval ID from Sentinel");
           startSentinelPolling(evalId);
         } catch {
           setSentinelStatus("error");
@@ -170,7 +172,7 @@ export default function ToolClient() {
   );
 
   const handleReset = useCallback(() => {
-    if (sentinelIntervalRef.current) clearInterval(sentinelIntervalRef.current);
+    if (sentinelTimerRef.current) clearTimeout(sentinelTimerRef.current);
     if (result?.originalUrl) URL.revokeObjectURL(result.originalUrl);
     setPhase("idle");
     setResult(null);
@@ -290,14 +292,18 @@ function ResultView({
       ? "bg-green-100 text-green-700"
       : sentinelVerdict === "soft_fail"
       ? "bg-yellow-100 text-yellow-700"
-      : "bg-red-100 text-red-700";
+      : sentinelVerdict === "hard_fail"
+      ? "bg-red-100 text-red-700"
+      : "bg-gray-100 text-gray-500";
 
   const verdictLabel =
     sentinelVerdict === "pass"
       ? "✓ Pass"
       : sentinelVerdict === "soft_fail"
       ? "Soft fail"
-      : "Fail";
+      : sentinelVerdict === "hard_fail"
+      ? "Hard fail"
+      : sentinelVerdict ?? "Unknown";
 
   return (
     <div className="space-y-6">
