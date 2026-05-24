@@ -1,10 +1,15 @@
 import type { NextRequest } from "next/server";
+import { isValidId } from "../../lib/validate";
 
 type Ctx = { params: Promise<{ runId: string }> };
 
 export async function GET(_req: NextRequest, ctx: Ctx) {
   try {
     const { runId } = await ctx.params;
+
+    if (!isValidId(runId)) {
+      return Response.json({ error: "Invalid run ID" }, { status: 400 });
+    }
 
     const res = await fetch(`https://api.runflow.io/v1/runs/${runId}`, {
       headers: {

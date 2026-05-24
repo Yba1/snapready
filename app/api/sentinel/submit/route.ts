@@ -1,10 +1,16 @@
 import { NextRequest } from "next/server";
+import { isAllowedBlobUrl, checkRateLimit } from "../../lib/validate";
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (!checkRateLimit(`sentinel:${ip}`, 5)) {
+    return Response.json({ error: "Too many requests. Try again in a minute." }, { status: 429 });
+  }
+
   try {
     const { imageUrl, originalUrl } = await request.json();
 
-    if (!imageUrl) {
+    if (!imageUrl || typeof imageUrl !== "string") {
       return Response.json({ error: "imageUrl is required" }, { status: 400 });
     }
 
@@ -15,7 +21,7 @@ export async function POST(request: NextRequest) {
         "Remove the background from a product photo and crop to square 1:1 format for a Depop marketplace listing. The subject should be cleanly isolated on a transparent background.",
     };
 
-    if (originalUrl) {
+    if (originalUrl && typeof originalUrl === "string" && isAllowedBlobUrl(originalUrl)) {
       body.reference_images = [
         {
           url: originalUrl,
@@ -38,8 +44,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!res.ok) {
-      const text = await res.text();
-      return Response.json({ error: `Sentinel error: ${text}` }, { status: res.status });
+      return Response.json({ error: "Evaluation service unavailable" }, { status: 502 });
     }
 
     const data = await res.json();

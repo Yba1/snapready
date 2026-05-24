@@ -1,11 +1,21 @@
 import { NextRequest } from "next/server";
+import { isAllowedBlobUrl, checkRateLimit } from "../lib/validate";
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (!checkRateLimit(`process:${ip}`, 5)) {
+    return Response.json({ error: "Too many requests. Try again in a minute." }, { status: 429 });
+  }
+
   try {
     const { imageUrl } = await request.json();
 
-    if (!imageUrl) {
+    if (!imageUrl || typeof imageUrl !== "string") {
       return Response.json({ error: "imageUrl is required" }, { status: 400 });
+    }
+
+    if (!isAllowedBlobUrl(imageUrl)) {
+      return Response.json({ error: "Invalid image URL" }, { status: 400 });
     }
 
     const res = await fetch(
@@ -17,17 +27,13 @@ export async function POST(request: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          input: {
-            image_url: imageUrl,
-            config: { aspect_ratio: "1:1" },
-          },
+          input: { image_url: imageUrl, config: { aspect_ratio: "1:1" } },
         }),
       }
     );
 
     if (!res.ok) {
-      const body = await res.text();
-      return Response.json({ error: `Runflow error: ${body}` }, { status: res.status });
+      return Response.json({ error: "Processing service unavailable" }, { status: 502 });
     }
 
     const data = await res.json();

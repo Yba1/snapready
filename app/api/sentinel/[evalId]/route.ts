@@ -1,10 +1,15 @@
 import type { NextRequest } from "next/server";
+import { isValidId } from "../../lib/validate";
 
 type Ctx = { params: Promise<{ evalId: string }> };
 
 export async function GET(_req: NextRequest, ctx: Ctx) {
   try {
     const { evalId } = await ctx.params;
+
+    if (!isValidId(evalId)) {
+      return Response.json({ error: "Invalid eval ID" }, { status: 400 });
+    }
 
     const res = await fetch(
       `https://sentinel.runflow.io/api/v1/evaluate/${evalId}`,
