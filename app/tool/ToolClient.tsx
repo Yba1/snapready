@@ -156,7 +156,7 @@ export default function ToolClient() {
   const doneCount = jobs.filter(j => j.phase === "done").length;
 
   return (
-    <div className="page-enter" style={{ maxWidth: 1240, margin: "0 auto", padding: "0 28px 80px" }}>
+    <div className="page-enter page-outer" style={{ maxWidth: 1240, margin: "0 auto", padding: "0 28px 80px" }}>
       <ToolNav />
       <input
         ref={fileInputRef}
@@ -194,7 +194,7 @@ function ToolNav() {
           <span style={{ fontWeight: 700, letterSpacing: "-0.02em", fontSize: 16 }}>SnapReady</span>
           <span className="mono" style={{ fontSize: 10, color: "var(--ink-faint)", border: "1px solid var(--line)", padding: "2px 7px", borderRadius: 999, marginLeft: 4 }}>STUDIO</span>
         </Link>
-        <div className="mono" style={{ fontSize: 11, color: "var(--ink-faint)" }}>3 photos free today</div>
+        <div className="mono nav-secondary" style={{ fontSize: 11, color: "var(--ink-faint)" }}>3 photos free today</div>
         <button className="pill pill-ghost" style={{ padding: "8px 14px", fontSize: 13 }}>
           <Icon name="bolt" size={13} /> Upgrade
         </button>
@@ -283,7 +283,7 @@ function BatchView({ jobs, doneCount, onReset, onAddMore, onDownloadAll, onGener
           </button>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+      <div className="batch-grid">
         {jobs.map(job => <JobCard key={job.id} job={job} onGenerateListing={onGenerateListing} />)}
       </div>
     </div>

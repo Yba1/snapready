@@ -6,7 +6,7 @@ import { Icon, Ripple, Reveal } from "./components/ui";
 
 export default function LandingClient() {
   return (
-    <div className="page-enter" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 28px" }}>
+    <div className="page-enter page-outer" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 28px" }}>
       <Nav />
       <Hero />
       <SocialStrip />
@@ -39,12 +39,12 @@ function Nav() {
           <span style={{ fontWeight: 700, letterSpacing: "-0.02em", fontSize: 17 }}>SnapReady</span>
           <span className="mono" style={{ fontSize: 10, color: "var(--ink-faint)", border: "1px solid var(--line)", padding: "2px 7px", borderRadius: 999, marginLeft: 4 }}>BETA</span>
         </div>
-        <div style={{ display: "flex", gap: 24, color: "var(--ink-dim)", fontSize: 14 }}>
+        <div className="nav-mid" style={{ display: "flex", gap: 24, color: "var(--ink-dim)", fontSize: 14 }}>
           <a href="#features" style={{ transition: "color .2s", cursor: "pointer" }}>Features</a>
           <a href="#how" style={{ transition: "color .2s", cursor: "pointer" }}>How it works</a>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <Link href="/tool" className="pill pill-ghost" style={{ padding: "8px 16px", fontSize: 13 }}>Sign in</Link>
+          <Link href="/tool" className="pill pill-ghost nav-secondary" style={{ padding: "8px 16px", fontSize: 13 }}>Sign in</Link>
           <Ripple className="pill pill-rose" style={{ padding: "8px 16px", fontSize: 13 }}>
             <Link href="/tool" style={{ display: "flex", alignItems: "center", gap: 6, color: "inherit", textDecoration: "none" }}>
               Try it free <Icon name="arrow" size={13} />
@@ -59,7 +59,7 @@ function Nav() {
 function Hero() {
   return (
     <section style={{ paddingTop: 90, paddingBottom: 40 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 60, alignItems: "center" }}>
+      <div className="hero-grid">
         <div>
           <div className="fade-up d1 mono" style={{
             display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--ink-dim)",
@@ -97,7 +97,7 @@ function Hero() {
             ))}
           </div>
         </div>
-        <div className="fade-up d3"><PhoneShowcase /></div>
+        <div className="fade-up d3 hide-mobile"><PhoneShowcase /></div>
       </div>
     </section>
   );
@@ -285,7 +285,7 @@ function HowItWorks() {
         </div>
       </Reveal>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 0, position: "relative" }}>
-        <div style={{ position: "absolute", top: 28, left: "10%", right: "10%", height: 1, background: "linear-gradient(90deg,transparent,rgba(225,29,72,0.45),rgba(225,29,72,0.45),transparent)" }} />
+        <div className="how-connector" style={{ position: "absolute", top: 28, left: "10%", right: "10%", height: 1, background: "linear-gradient(90deg,transparent,rgba(225,29,72,0.45),rgba(225,29,72,0.45),transparent)" }} />
         {steps.map((s, i) => (
           <Reveal key={s.n} delay={i * 120}>
             <div style={{ padding: "0 24px" }}>
@@ -310,8 +310,8 @@ function BigCTA() {
   return (
     <section style={{ padding: "80px 0 100px" }}>
       <Reveal>
-        <div className="glass" style={{
-          padding: "60px 48px", borderRadius: 28, position: "relative", overflow: "hidden",
+        <div className="glass cta-inner" style={{
+          borderRadius: 28, position: "relative", overflow: "hidden",
           background: "linear-gradient(180deg,rgba(225,29,72,0.10),rgba(255,255,255,0.02))",
           textAlign: "center",
         }}>
