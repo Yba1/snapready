@@ -18,6 +18,18 @@ export function Icon({ name, size = 18, stroke = 1.6, className = "" }: { name: 
     case "refresh": return <svg {...p}><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>;
     case "shield": return <svg {...p}><path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>;
     case "bolt": return <svg {...p}><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>;
+    case "qr": return (
+      <svg {...p} stroke="none" fill="currentColor">
+        <rect x="3" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" strokeWidth={stroke}/>
+        <rect x="14" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" strokeWidth={stroke}/>
+        <rect x="3" y="14" width="7" height="7" rx="1" fill="none" stroke="currentColor" strokeWidth={stroke}/>
+        <rect x="5" y="5" width="3" height="3" rx="0.5"/>
+        <rect x="16" y="5" width="3" height="3" rx="0.5"/>
+        <rect x="5" y="16" width="3" height="3" rx="0.5"/>
+        <rect x="14" y="14" width="2.5" height="2.5" rx="0.5"/><rect x="17.5" y="14" width="2.5" height="2.5" rx="0.5"/>
+        <rect x="14" y="17.5" width="2.5" height="2.5" rx="0.5"/><rect x="17.5" y="17.5" width="2.5" height="2.5" rx="0.5"/>
+      </svg>
+    );
     case "logo": return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
         <rect x="2" y="2" width="20" height="20" rx="6" fill="url(#snapLg)"/>
