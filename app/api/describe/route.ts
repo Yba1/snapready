@@ -22,17 +22,30 @@ export async function POST(request: NextRequest) {
 
     const message = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
+      max_tokens: 800,
       messages: [{
         role: "user",
         content: [
           { type: "image", source: { type: "url", url: imageUrl } },
           {
             type: "text",
-            text: `You are a Depop listing expert. Analyse this clothing/fashion item and return ONLY valid JSON — no markdown, no explanation — with these exact fields:
-- title: string (max 50 chars, catchy, include brand if visible)
-- description: string (2–3 sentences: condition, style, fit hint, why it's worth buying)
-- hashtags: string[] (exactly 6 relevant hashtags, no # symbol)`,
+            text: `You are a Depop resale expert. Analyse this clothing item and return ONLY valid JSON — no markdown, no explanation:
+{
+  "title": "string (max 50 chars, catchy, include brand if visible)",
+  "description": "string (2-3 sentences: style, vibe, fit — no measurements here)",
+  "hashtags": ["string"] (exactly 6 hashtags, no # symbol),
+  "price_low": number (GBP realistic Depop low end),
+  "price_high": number (GBP realistic Depop high end),
+  "price_recommended": number (GBP sweet spot for fast sale),
+  "condition": "New with tags" or "Like new" or "Good" or "Fair",
+  "visible_defects": "string describing any visible issues, or null if none",
+  "measurements": {
+    "chest_cm": number or null,
+    "length_cm": number or null,
+    "sleeve_cm": number or null,
+    "notes": "string — caveats, e.g. estimated from frame"
+  }
+}`,
           },
         ],
       }],
