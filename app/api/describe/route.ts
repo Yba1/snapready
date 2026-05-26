@@ -29,11 +29,13 @@ export async function POST(request: NextRequest) {
           { type: "image", source: { type: "url", url: imageUrl } },
           {
             type: "text",
-            text: `You are a Depop resale expert. Analyse this clothing item and return ONLY valid JSON — no markdown, no explanation:
+            text: `You are a Depop resale and fashion expert. Analyse this clothing item and return ONLY valid JSON — no markdown, no explanation:
 {
-  "title": "string (max 50 chars, catchy, include brand if visible)",
-  "description": "string (2-3 sentences: style, vibe, fit — no measurements here)",
-  "hashtags": ["string"] (exactly 6 hashtags, no # symbol),
+  "brand": "string — exact brand name if visible on label, tag, logo, or identifiable design (e.g. 'Nike', 'Levi's', 'Carhartt'). null if unbranded or unclear",
+  "item_type": "string — specific item category in Depop style (e.g. 'vintage wash denim jacket', 'Y2K mini skirt', 'oversized graphic tee', 'cargo trousers')",
+  "title": "string (max 50 chars, catchy Depop title, include brand and item_type)",
+  "description": "string (2-3 sentences: style, vibe, era, fit — no measurements here)",
+  "hashtags": ["string"] (exactly 6 hashtags, no # symbol, Depop-relevant),
   "price_low": number (GBP realistic Depop low end),
   "price_high": number (GBP realistic Depop high end),
   "price_recommended": number (GBP sweet spot for fast sale),
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
     "chest_cm": number or null,
     "length_cm": number or null,
     "sleeve_cm": number or null,
-    "notes": "string — caveats, e.g. estimated from frame"
+    "notes": "string — caveats, e.g. estimated from frame or not applicable"
   }
 }`,
           },

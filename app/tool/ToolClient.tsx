@@ -13,16 +13,19 @@ type DepopStatus = "idle" | "posting" | "posted" | "error";
 
 interface Measurements { chest_cm: number | null; length_cm: number | null; sleeve_cm: number | null; notes: string; }
 interface ListingData {
+  brand: string | null; item_type: string;
   title: string; description: string; hashtags: string[];
   price_low: number; price_high: number; price_recommended: number;
   condition: string; visible_defects: string | null;
   measurements: Measurements | null;
 }
+type Section = "brand" | "price" | "measurements" | "listing";
 interface ImageJob {
   id: string; fileName: string; localPreview: string;
   phase: Phase; result: { originalUrl: string; processedUrl: string } | null; error: string | null;
   sentinelStatus: SentinelStatus; sentinelScore: number | null; sentinelVerdict: string | null;
   listingStatus: ListingStatus; listing: ListingData | null;
+  openSections: Section[];
   depopStatus: DepopStatus; depopEditUrl: string | null;
 }
 
@@ -31,7 +34,7 @@ function makeJob(file: File): ImageJob {
     id: crypto.randomUUID(), fileName: file.name, localPreview: URL.createObjectURL(file),
     phase: "idle", result: null, error: null,
     sentinelStatus: "idle", sentinelScore: null, sentinelVerdict: null,
-    listingStatus: "idle", listing: null,
+    listingStatus: "idle", listing: null, openSections: [],
     depopStatus: "idle", depopEditUrl: null,
   };
 }
@@ -129,8 +132,19 @@ export default function ToolClient() {
     newJobs.forEach((job, i) => processJob(job.id, valid[i], job.localPreview));
   }, [processJob]);
 
-  const generateListing = useCallback(async (jobId: string, imageUrl: string) => {
-    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, listingStatus: "loading" } : j));
+  const openSection = useCallback(async (jobId: string, section: Section, imageUrl: string) => {
+    let shouldFetch = false;
+    setJobs(prev => {
+      const job = prev.find(j => j.id === jobId);
+      if (!job) return prev;
+      const newSections = job.openSections.includes(section) ? job.openSections : [...job.openSections, section];
+      if (!job.listing && job.listingStatus === "idle") {
+        shouldFetch = true;
+        return prev.map(j => j.id === jobId ? { ...j, openSections: newSections, listingStatus: "loading" } : j);
+      }
+      return prev.map(j => j.id === jobId ? { ...j, openSections: newSections } : j);
+    });
+    if (!shouldFetch) return;
     try {
       const res = await fetch("/api/describe", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -277,7 +291,7 @@ export default function ToolClient() {
         <BatchView
           jobs={jobs} doneCount={doneCount} depopToken={depopToken}
           onReset={handleReset} onAddMore={() => fileInputRef.current?.click()}
-          onDownloadAll={downloadAll} onGenerateListing={generateListing}
+          onDownloadAll={downloadAll} onOpenSection={openSection}
           onPostToDepop={requestDepopPost} onShareCard={generateShareCard}
         />
       )}
@@ -408,10 +422,10 @@ function Dropzone({ onFiles, onPickFiles }: { onFiles: (f: File[]) => void; onPi
 }
 
 /* ── Batch view ── */
-function BatchView({ jobs, doneCount, depopToken, onReset, onAddMore, onDownloadAll, onGenerateListing, onPostToDepop, onShareCard }: {
+function BatchView({ jobs, doneCount, depopToken, onReset, onAddMore, onDownloadAll, onOpenSection, onPostToDepop, onShareCard }: {
   jobs: ImageJob[]; doneCount: number; depopToken: string | null;
   onReset: () => void; onAddMore: () => void; onDownloadAll: () => void;
-  onGenerateListing: (jobId: string, imageUrl: string) => void;
+  onOpenSection: (jobId: string, section: Section, imageUrl: string) => void;
   onPostToDepop: (jobId: string) => void;
   onShareCard: (job: ImageJob) => void;
 }) {
@@ -440,7 +454,7 @@ function BatchView({ jobs, doneCount, depopToken, onReset, onAddMore, onDownload
       <div className="batch-grid">
         {jobs.map(job => (
           <JobCard key={job.id} job={job}
-            onGenerateListing={onGenerateListing}
+            onOpenSection={onOpenSection}
             onPostToDepop={onPostToDepop}
             onShareCard={onShareCard}
           />
@@ -451,9 +465,9 @@ function BatchView({ jobs, doneCount, depopToken, onReset, onAddMore, onDownload
 }
 
 /* ── Job card ── */
-function JobCard({ job, onGenerateListing, onPostToDepop, onShareCard }: {
+function JobCard({ job, onOpenSection, onPostToDepop, onShareCard }: {
   job: ImageJob;
-  onGenerateListing: (jobId: string, imageUrl: string) => void;
+  onOpenSection: (jobId: string, section: Section, imageUrl: string) => void;
   onPostToDepop: (jobId: string) => void;
   onShareCard: (job: ImageJob) => void;
 }) {
@@ -545,18 +559,40 @@ function JobCard({ job, onGenerateListing, onPostToDepop, onShareCard }: {
             </button>
           </div>
 
-          {/* AI listing button */}
-          <button
-            className="pill pill-ghost"
-            style={{ padding: "9px 14px", fontSize: 13, width: "100%", justifyContent: "center", opacity: job.listingStatus === "loading" ? 0.6 : 1 }}
-            onClick={() => job.listingStatus === "idle" && onGenerateListing(job.id, job.result!.processedUrl)}
-            disabled={job.listingStatus === "loading"}>
-            {job.listingStatus === "loading"
-              ? <><span className="dots"><span /><span /><span /></span> Generating listing…</>
-              : job.listingStatus === "done"
-              ? <><Icon name="check" size={13} /> Listing ready — regenerate?</>
-              : <><Icon name="spark" size={13} /> Generate AI listing + price + measurements</>}
-          </button>
+          {/* AI section buttons */}
+          {(() => {
+            const loading = job.listingStatus === "loading";
+            const btn = (section: Section, label: string, icon: string) => {
+              const open = job.openSections.includes(section);
+              const isLoading = loading && !job.listing;
+              return (
+                <button key={section} className="pill pill-ghost"
+                  style={{ padding: "8px 10px", fontSize: 12, justifyContent: "center", opacity: isLoading && !open ? 0.5 : 1, flex: 1 }}
+                  onClick={() => onOpenSection(job.id, section, job.result!.processedUrl)}
+                  disabled={isLoading}>
+                  {isLoading && !open
+                    ? <><span className="dots"><span /><span /><span /></span></>
+                    : open && job.listing
+                    ? <><Icon name="check" size={11} /> {label}</>
+                    : <><Icon name={icon} size={11} /> {label}</>}
+                </button>
+              );
+            };
+            return (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {btn("brand", "Brand ID", "spark")}
+                {btn("price", "Price", "bolt")}
+                {btn("measurements", "Measure", "shield")}
+                {btn("listing", "Write listing", "image")}
+              </div>
+            );
+          })()}
+
+          {job.listingStatus === "error" && (
+            <div style={{ fontSize: 12, color: "#fda4af", padding: "8px 12px", borderRadius: 10, background: "rgba(225,29,72,0.08)" }}>
+              AI failed — check ANTHROPIC_API_KEY in Vercel env vars.
+            </div>
+          )}
 
           {/* QR panel */}
           {showQR && (
@@ -568,14 +604,51 @@ function JobCard({ job, onGenerateListing, onPostToDepop, onShareCard }: {
             </div>
           )}
 
-          {/* Listing panel */}
-          {job.listingStatus === "done" && job.listing && (
-            <ListingPanel listing={job.listing} jobId={job.id} depopStatus={job.depopStatus} depopEditUrl={job.depopEditUrl} onPostToDepop={onPostToDepop} />
-          )}
-          {job.listingStatus === "error" && (
-            <div style={{ fontSize: 12, color: "#fda4af", padding: "8px 12px", borderRadius: 10, background: "rgba(225,29,72,0.08)" }}>
-              Couldn&apos;t generate listing — add ANTHROPIC_API_KEY to your Vercel env vars.
+          {/* Brand section */}
+          {job.openSections.includes("brand") && job.listing && (
+            <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="mono" style={{ fontSize: 10, color: "var(--rose-soft)", letterSpacing: "0.12em" }}>BRAND ID</div>
+              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em" }}>{job.listing.brand ?? "Unbranded"}</div>
+              <div style={{ fontSize: 13, color: "var(--ink-dim)" }}>{job.listing.item_type}</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: job.listing.condition === "New with tags" ? "#86efac" : job.listing.condition === "Like new" ? "#a3e635" : job.listing.condition === "Good" ? "#fde047" : "#fda4af" }}>
+                  {job.listing.condition}
+                </span>
+                {job.listing.visible_defects && <span style={{ fontSize: 11, color: "#fda4af" }}>⚠ {job.listing.visible_defects}</span>}
+              </div>
             </div>
+          )}
+
+          {/* Price section */}
+          {job.openSections.includes("price") && job.listing && (
+            <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="mono" style={{ fontSize: 10, color: "var(--rose-soft)", letterSpacing: "0.12em" }}>PRICE ESTIMATE</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                <span style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em" }}>£{job.listing.price_recommended}</span>
+                <span style={{ fontSize: 12, color: "var(--ink-faint)" }}>recommended</span>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--ink-faint)" }}>Range: £{job.listing.price_low} – £{job.listing.price_high}</div>
+            </div>
+          )}
+
+          {/* Measurements section */}
+          {job.openSections.includes("measurements") && job.listing && (
+            <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="mono" style={{ fontSize: 10, color: "var(--rose-soft)", letterSpacing: "0.12em" }}>MEASUREMENTS (est.)</div>
+              {job.listing.measurements && (job.listing.measurements.chest_cm || job.listing.measurements.length_cm || job.listing.measurements.sleeve_cm) ? (
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                  {job.listing.measurements.chest_cm && <div><div className="mono" style={{ fontSize: 9, color: "var(--ink-faint)", marginBottom: 2 }}>CHEST</div><div style={{ fontSize: 18, fontWeight: 600 }}>{job.listing.measurements.chest_cm}<span style={{ fontSize: 11, color: "var(--ink-faint)" }}>cm</span></div></div>}
+                  {job.listing.measurements.length_cm && <div><div className="mono" style={{ fontSize: 9, color: "var(--ink-faint)", marginBottom: 2 }}>LENGTH</div><div style={{ fontSize: 18, fontWeight: 600 }}>{job.listing.measurements.length_cm}<span style={{ fontSize: 11, color: "var(--ink-faint)" }}>cm</span></div></div>}
+                  {job.listing.measurements.sleeve_cm && <div><div className="mono" style={{ fontSize: 9, color: "var(--ink-faint)", marginBottom: 2 }}>SLEEVE</div><div style={{ fontSize: 18, fontWeight: 600 }}>{job.listing.measurements.sleeve_cm}<span style={{ fontSize: 11, color: "var(--ink-faint)" }}>cm</span></div></div>}
+                </div>
+              ) : <div style={{ fontSize: 12, color: "var(--ink-faint)" }}>Couldn't estimate — item not laid flat</div>}
+              {job.listing.measurements?.notes && <div style={{ fontSize: 11, color: "var(--ink-faint)" }}>{job.listing.measurements.notes}</div>}
+            </div>
+          )}
+
+          {/* Listing section */}
+          {job.openSections.includes("listing") && job.listing && (
+            <ListingPanel listing={job.listing} jobId={job.id} depopStatus={job.depopStatus} depopEditUrl={job.depopEditUrl} onPostToDepop={onPostToDepop} />
           )}
 
           {/* Sentinel */}
@@ -611,62 +684,11 @@ function ListingPanel({ listing, jobId, depopStatus, depopEditUrl, onPostToDepop
   onPostToDepop: (jobId: string) => void;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
-  const [showCopyFallback, setShowCopyFallback] = useState(false);
   const copy = (text: string, key: string) => { navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 1500); };
-
-  const copyForDepop = () => {
-    const text = [
-      listing.title,
-      "",
-      listing.description,
-      listing.visible_defects ? `\nCondition notes: ${listing.visible_defects}` : "",
-      listing.measurements ? `\nEstimated measurements: ${[
-        listing.measurements.chest_cm ? `Chest: ${listing.measurements.chest_cm}cm` : "",
-        listing.measurements.length_cm ? `Length: ${listing.measurements.length_cm}cm` : "",
-        listing.measurements.sleeve_cm ? `Sleeve: ${listing.measurements.sleeve_cm}cm` : "",
-      ].filter(Boolean).join(" · ")}` : "",
-      "",
-      listing.hashtags.map(t => `#${t}`).join(" "),
-    ].filter(s => s !== undefined).join("\n");
-    copy(text, "depop");
-    setShowCopyFallback(false);
-  };
-
-  const conditionColour = listing.condition === "New with tags" ? "#86efac"
-    : listing.condition === "Like new" ? "#a3e635"
-    : listing.condition === "Good" ? "#fde047" : "#fda4af";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid var(--line)" }}>
-      <div className="mono" style={{ fontSize: 10, color: "var(--rose-soft)", letterSpacing: "0.12em" }}>AI LISTING</div>
-
-      {/* Price */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.03em" }}>£{listing.price_recommended}</span>
-        <span style={{ fontSize: 12, color: "var(--ink-faint)" }}>£{listing.price_low}–£{listing.price_high} range</span>
-      </div>
-
-      {/* Condition + defects */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: conditionColour }}>
-          {listing.condition}
-        </span>
-        {listing.visible_defects && (
-          <span style={{ fontSize: 11, color: "#fda4af" }}>⚠ {listing.visible_defects}</span>
-        )}
-      </div>
-
-      {/* Measurements */}
-      {listing.measurements && (listing.measurements.chest_cm || listing.measurements.length_cm || listing.measurements.sleeve_cm) && (
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {listing.measurements.chest_cm && <span className="mono" style={{ fontSize: 11, color: "var(--ink-dim)" }}>Chest {listing.measurements.chest_cm}cm</span>}
-          {listing.measurements.length_cm && <span className="mono" style={{ fontSize: 11, color: "var(--ink-dim)" }}>Length {listing.measurements.length_cm}cm</span>}
-          {listing.measurements.sleeve_cm && <span className="mono" style={{ fontSize: 11, color: "var(--ink-dim)" }}>Sleeve {listing.measurements.sleeve_cm}cm</span>}
-          <span style={{ fontSize: 10, color: "var(--ink-faint)" }}>est.</span>
-        </div>
-      )}
-
-      <div style={{ height: 1, background: "var(--line-2)" }} />
+      <div className="mono" style={{ fontSize: 10, color: "var(--rose-soft)", letterSpacing: "0.12em" }}>DEPOP LISTING</div>
 
       {/* Title */}
       <div>
