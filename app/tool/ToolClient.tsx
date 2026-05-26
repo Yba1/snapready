@@ -19,7 +19,7 @@ interface ListingData {
   condition: string; visible_defects: string | null;
   measurements: Measurements | null;
 }
-type Section = "brand" | "price" | "measurements" | "listing";
+type Section = "price" | "measurements" | "listing";
 interface ImageJob {
   id: string; fileName: string; localPreview: string;
   phase: Phase; result: { originalUrl: string; processedUrl: string } | null; error: string | null;
@@ -579,8 +579,7 @@ function JobCard({ job, onOpenSection, onPostToDepop, onShareCard }: {
               );
             };
             return (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {btn("brand", "Brand ID", "spark")}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
                 {btn("price", "Price", "bolt")}
                 {btn("measurements", "Measure", "shield")}
                 {btn("listing", "Write listing", "image")}
@@ -604,20 +603,7 @@ function JobCard({ job, onOpenSection, onPostToDepop, onShareCard }: {
             </div>
           )}
 
-          {/* Brand section */}
-          {job.openSections.includes("brand") && job.listing && (
-            <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 6 }}>
-              <div className="mono" style={{ fontSize: 10, color: "var(--rose-soft)", letterSpacing: "0.12em" }}>BRAND ID</div>
-              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em" }}>{job.listing.brand ?? "Unbranded"}</div>
-              <div style={{ fontSize: 13, color: "var(--ink-dim)" }}>{job.listing.item_type}</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
-                <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: job.listing.condition === "New with tags" ? "#86efac" : job.listing.condition === "Like new" ? "#a3e635" : job.listing.condition === "Good" ? "#fde047" : "#fda4af" }}>
-                  {job.listing.condition}
-                </span>
-                {job.listing.visible_defects && <span style={{ fontSize: 11, color: "#fda4af" }}>⚠ {job.listing.visible_defects}</span>}
-              </div>
-            </div>
-          )}
+
 
           {/* Price section */}
           {job.openSections.includes("price") && job.listing && (
