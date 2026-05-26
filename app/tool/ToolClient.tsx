@@ -644,9 +644,6 @@ function ListingPanel({ listing, jobId, depopStatus, depopEditUrl, onPostToDepop
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
         <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.03em" }}>£{listing.price_recommended}</span>
         <span style={{ fontSize: 12, color: "var(--ink-faint)" }}>£{listing.price_low}–£{listing.price_high} range</span>
-        <button onClick={() => copy(`${listing.price_recommended}`, "price")} style={{ fontSize: 11, color: copied === "price" ? "#86efac" : "var(--ink-faint)", cursor: "pointer", marginLeft: "auto" }}>
-          {copied === "price" ? "✓" : "Copy"}
-        </button>
       </div>
 
       {/* Condition + defects */}
@@ -674,35 +671,41 @@ function ListingPanel({ listing, jobId, depopStatus, depopEditUrl, onPostToDepop
       {/* Title */}
       <div>
         <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 3 }}>Title</div>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, flex: 1, lineHeight: 1.4 }}>{listing.title}</div>
-          <button onClick={() => copy(listing.title, "title")} style={{ fontSize: 11, color: copied === "title" ? "#86efac" : "var(--ink-faint)", cursor: "pointer", flexShrink: 0 }}>{copied === "title" ? "✓" : "Copy"}</button>
-        </div>
+        <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4 }}>{listing.title}</div>
       </div>
 
       {/* Description */}
       <div>
         <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 3 }}>Description</div>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-          <div style={{ fontSize: 12, color: "var(--ink-dim)", lineHeight: 1.55, flex: 1 }}>{listing.description}</div>
-          <button onClick={() => copy(listing.description, "desc")} style={{ fontSize: 11, color: copied === "desc" ? "#86efac" : "var(--ink-faint)", cursor: "pointer", flexShrink: 0 }}>{copied === "desc" ? "✓" : "Copy"}</button>
-        </div>
+        <div style={{ fontSize: 12, color: "var(--ink-dim)", lineHeight: 1.55 }}>{listing.description}</div>
       </div>
 
       {/* Hashtags */}
       <div>
-        <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>Hashtags</div>
+        <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>Hashtags — tap one to copy</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
           {listing.hashtags.map((tag, i) => (
-            <button key={i} onClick={() => copy(`#${tag}`, `t${i}`)} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 999, cursor: "pointer", background: copied === `t${i}` ? "rgba(34,197,94,0.12)" : "rgba(225,29,72,0.08)", border: `1px solid ${copied === `t${i}` ? "rgba(34,197,94,0.3)" : "rgba(225,29,72,0.2)"}`, color: copied === `t${i}` ? "#86efac" : "#fda4af" }}>#{tag}</button>
+            <button key={i} onClick={() => copy(`#${tag}`, `t${i}`)} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 999, cursor: "pointer", background: copied === `t${i}` ? "rgba(34,197,94,0.12)" : "rgba(225,29,72,0.08)", border: `1px solid ${copied === `t${i}` ? "rgba(34,197,94,0.3)" : "rgba(225,29,72,0.2)"}`, color: copied === `t${i}` ? "#86efac" : "#fda4af" }}>
+              {copied === `t${i}` ? "✓" : "#"}{tag}
+            </button>
           ))}
-          <button onClick={() => copy(listing.hashtags.map(t => `#${t}`).join(" "), "all")} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 999, cursor: "pointer", background: "transparent", border: "1px solid var(--line)", color: copied === "all" ? "#86efac" : "var(--ink-faint)" }}>
-            {copied === "all" ? "✓ Copied" : "Copy all"}
-          </button>
         </div>
       </div>
 
       <div style={{ height: 1, background: "var(--line-2)" }} />
+
+      {/* Individual copy buttons */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+        <button className="pill pill-ghost" style={{ padding: "7px 8px", fontSize: 11, justifyContent: "center" }} onClick={() => copy(listing.title, "title")}>
+          {copied === "title" ? <><Icon name="check" size={11} /> Title</> : "Copy title"}
+        </button>
+        <button className="pill pill-ghost" style={{ padding: "7px 8px", fontSize: 11, justifyContent: "center" }} onClick={() => copy(listing.description, "desc")}>
+          {copied === "desc" ? <><Icon name="check" size={11} /> Desc</> : "Copy desc"}
+        </button>
+        <button className="pill pill-ghost" style={{ padding: "7px 8px", fontSize: 11, justifyContent: "center" }} onClick={() => copy(listing.hashtags.map(t => `#${t}`).join(" "), "tags")}>
+          {copied === "tags" ? <><Icon name="check" size={11} /> Tags</> : "Copy tags"}
+        </button>
+      </div>
 
       {/* Post to Depop */}
       {depopStatus === "posted" && depopEditUrl ? (
@@ -714,23 +717,15 @@ function ListingPanel({ listing, jobId, depopStatus, depopEditUrl, onPostToDepop
           <span className="dots"><span /><span /><span /></span> Posting to Depop…
         </div>
       ) : (
-        <div style={{ display: "flex", gap: 8 }}>
-          <Ripple className="pill pill-rose" style={{ flex: 1, justifyContent: "center", padding: "9px 14px", fontSize: 13 }} onClick={() => onPostToDepop(jobId)}>
-            Post to Depop
-          </Ripple>
-          <button className="pill pill-ghost" style={{ padding: "9px 14px", fontSize: 13 }} onClick={copyForDepop}>
-            {copied === "depop" ? <><Icon name="check" size={13} /> Copied!</> : "Copy all"}
-          </button>
-        </div>
+        <Ripple className="pill pill-rose" style={{ width: "100%", justifyContent: "center", padding: "9px 14px", fontSize: 13 }} onClick={() => onPostToDepop(jobId)}>
+          Post to Depop
+        </Ripple>
       )}
 
       {/* Depop error → show copy fallback */}
       {depopStatus === "error" && (
         <div style={{ fontSize: 12, padding: "10px 12px", borderRadius: 10, background: "rgba(225,29,72,0.08)", border: "1px solid rgba(225,29,72,0.2)" }}>
-          <div style={{ color: "#fda4af", marginBottom: 8 }}>Depop post failed — copy everything below instead:</div>
-          <button className="pill pill-ghost" style={{ width: "100%", justifyContent: "center", padding: "8px", fontSize: 13 }} onClick={copyForDepop}>
-            {copied === "depop" ? <><Icon name="check" size={13} /> Copied!</> : "Copy full listing for Depop"}
-          </button>
+          <div style={{ color: "#fda4af", marginBottom: 8 }}>Depop post failed — copy the sections above instead.</div>
         </div>
       )}
     </div>
