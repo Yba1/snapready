@@ -44,7 +44,7 @@ function Nav() {
           <a href="#how" style={{ transition: "color .2s", cursor: "pointer" }}>How it works</a>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <Link href="/tool" className="pill pill-ghost nav-secondary" style={{ padding: "8px 16px", fontSize: 13 }}>Sign in</Link>
+          <Link href="/tool" className="pill pill-ghost nav-secondary" style={{ padding: "8px 16px", fontSize: 13 }}>Open tool</Link>
           <Ripple className="pill pill-rose" style={{ padding: "8px 16px", fontSize: 13 }}>
             <Link href="/tool" style={{ display: "flex", alignItems: "center", gap: 6, color: "inherit", textDecoration: "none" }}>
               Try it free <Icon name="arrow" size={13} />
@@ -89,7 +89,7 @@ function Hero() {
             </Ripple>
           </div>
           <div className="fade-up d5" style={{ display: "flex", gap: 24, marginTop: 44, color: "var(--ink-faint)", fontSize: 12 }}>
-            {["No card required", "3 photos free / day", "Ready in ~15s"].map((t) => (
+            {["No card required", "Free to use", "Ready in ~15s"].map((t) => (
               <div key={t} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <Icon name="check" size={13} />
                 <span>{t}</span>
@@ -319,7 +319,7 @@ function BigCTA() {
           <h2 style={{ fontSize: "clamp(32px,5vw,60px)", letterSpacing: "-0.03em", margin: 0, fontWeight: 600, lineHeight: 1.05 }}>
             Your next listing could<br />be your fastest sale.
           </h2>
-          <div style={{ color: "var(--ink-dim)", marginTop: 16, fontSize: 16 }}>Free for the first 3 photos a day. No signup required.</div>
+          <div style={{ color: "var(--ink-dim)", marginTop: 16, fontSize: 16 }}>Free to use. No signup required.</div>
           <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
             <Ripple className="pill pill-rose" style={{ padding: "16px 26px", fontSize: 15 }}>
               <Link href="/tool" style={{ display: "flex", alignItems: "center", gap: 7, color: "inherit", textDecoration: "none" }}>

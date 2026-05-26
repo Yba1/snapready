@@ -313,10 +313,7 @@ function ToolNav() {
           <span style={{ fontWeight: 700, letterSpacing: "-0.02em", fontSize: 16 }}>SnapReady</span>
           <span className="mono" style={{ fontSize: 10, color: "var(--ink-faint)", border: "1px solid var(--line)", padding: "2px 7px", borderRadius: 999, marginLeft: 4 }}>STUDIO</span>
         </Link>
-        <div className="mono nav-secondary" style={{ fontSize: 11, color: "var(--ink-faint)" }}>3 photos free today</div>
-        <button className="pill pill-ghost" style={{ padding: "8px 14px", fontSize: 13 }}>
-          <Icon name="bolt" size={13} /> Upgrade
-        </button>
+        <div className="mono nav-secondary" style={{ fontSize: 11, color: "var(--ink-faint)" }}>Free · No signup</div>
       </div>
     </div>
   );
@@ -478,6 +475,31 @@ function JobCard({ job, onOpenSection, onPostToDepop, onShareCard }: {
   const [showQR, setShowQR] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const [bg, setBg] = useState<"clean" | "rose" | "studio">("clean");
+
+  const downloadImage = async () => {
+    if (!job.result) return;
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 1800);
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image(); i.crossOrigin = "anonymous";
+        i.onload = () => resolve(i); i.onerror = reject;
+        i.src = job.result!.processedUrl;
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      canvas.getContext("2d")!.drawImage(img, 0, 0);
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = job.fileName.replace(/\.[^.]+$/, "") + "-snapready.png"; a.click();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    } catch {
+      window.open(job.result!.processedUrl, "_blank");
+    }
+  };
   const bgMap = { clean: "linear-gradient(180deg,#f7f5f4,#ede9e6)", rose: "linear-gradient(160deg,#f9c8d1,#fff)", studio: "linear-gradient(180deg,#1a1517,#0a0707)" };
   const stepMap: Record<string, number> = { uploading: 0, starting: 1, processing: 2 };
   const textMap: Record<string, string> = { uploading: "Uploading…", starting: "Starting AI…", processing: "Removing background…" };
@@ -551,7 +573,7 @@ function JobCard({ job, onOpenSection, onPostToDepop, onShareCard }: {
 
           {/* Primary actions */}
           <Ripple className="pill pill-rose" style={{ padding: "9px 14px", fontSize: 13, width: "100%", justifyContent: "center" }}
-            onClick={() => { setDownloaded(true); setTimeout(() => setDownloaded(false), 1800); window.open(job.result!.processedUrl, "_blank"); }}>
+            onClick={downloadImage}>
             {downloaded ? <><Icon name="check" size={13} /> Saved!</> : <><Icon name="download" size={13} /> Download</>}
           </Ripple>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
