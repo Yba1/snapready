@@ -532,16 +532,16 @@ function JobCard({ job, onGenerateListing, onPostToDepop, onShareCard }: {
           </div>
 
           {/* Primary actions */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Ripple className="pill pill-rose" style={{ padding: "7px 12px", fontSize: 12, flex: 1 }}
-              onClick={() => { setDownloaded(true); setTimeout(() => setDownloaded(false), 1800); window.open(job.result!.processedUrl, "_blank"); }}>
-              {downloaded ? <><Icon name="check" size={12} /> Saved!</> : <><Icon name="download" size={12} /> Download</>}
-            </Ripple>
-            <button className="pill pill-ghost" style={{ padding: "7px 12px", fontSize: 12 }} onClick={() => setShowQR(v => !v)}>
-              <Icon name="qr" size={13} /> QR
+          <Ripple className="pill pill-rose" style={{ padding: "9px 14px", fontSize: 13, width: "100%", justifyContent: "center" }}
+            onClick={() => { setDownloaded(true); setTimeout(() => setDownloaded(false), 1800); window.open(job.result!.processedUrl, "_blank"); }}>
+            {downloaded ? <><Icon name="check" size={13} /> Saved!</> : <><Icon name="download" size={13} /> Download</>}
+          </Ripple>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button className="pill pill-ghost" style={{ padding: "7px 12px", fontSize: 12, justifyContent: "center" }} onClick={() => setShowQR(v => !v)}>
+              <Icon name="qr" size={13} /> QR code
             </button>
-            <button className="pill pill-ghost" style={{ padding: "7px 12px", fontSize: 12 }} onClick={() => onShareCard(job)}>
-              <Icon name="image" size={12} /> Share
+            <button className="pill pill-ghost" style={{ padding: "7px 12px", fontSize: 12, justifyContent: "center" }} onClick={() => onShareCard(job)}>
+              <Icon name="image" size={12} /> Share card
             </button>
           </div>
 
