@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import QRCode from "react-qr-code";
+import { upload } from "@vercel/blob/client";
 import { Icon, Ripple, TypeOn, CountUp, ScoreRing } from "../components/ui";
 
 /* ── Types ── */
@@ -59,10 +60,11 @@ export default function ToolClient() {
 
     try {
       patch({ phase: "uploading" });
-      const fd = new FormData(); fd.append("file", file);
-      const upRes = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!upRes.ok) throw new Error("Upload failed");
-      const { url: blobUrl } = await upRes.json();
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      const blobUrl = blob.url;
 
       patch({ phase: "starting" });
       const procRes = await fetch("/api/process", {

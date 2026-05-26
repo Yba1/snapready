@@ -1,43 +1,30 @@
-import { put } from "@vercel/blob";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextRequest } from "next/server";
-import {
-  isAllowedMimeType,
-  isAllowedFileSize,
-  sanitizeFilename,
-  checkRateLimit,
-} from "../lib/validate";
+import { checkRateLimit } from "../lib/validate";
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
-  if (!checkRateLimit(`upload:${ip}`, 10)) {
-    return Response.json({ error: "Too many uploads. Try again in a minute." }, { status: 429 });
+  const body = (await request.json()) as HandleUploadBody;
+
+  // Only rate-limit the token request (completion webhook comes from Vercel's servers)
+  if (body.type === "blob.generate-client-token") {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+    if (!checkRateLimit(`upload:${ip}`, 10)) {
+      return Response.json({ error: "Too many uploads. Try again in a minute." }, { status: 429 });
+    }
   }
 
   try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-
-    if (!file) {
-      return Response.json({ error: "No file provided" }, { status: 400 });
-    }
-
-    if (!isAllowedMimeType(file.type)) {
-      return Response.json({ error: "File type not allowed. Use JPG, PNG, or WEBP." }, { status: 400 });
-    }
-
-    if (!isAllowedFileSize(file.size)) {
-      return Response.json({ error: "File must be between 1 byte and 10 MB." }, { status: 400 });
-    }
-
-    const safeName = sanitizeFilename(file.name);
-    const blob = await put(`uploads/${Date.now()}-${safeName}`, file, {
-      access: "public",
-      contentType: file.type,
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async () => ({
+        allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+        maximumSizeInBytes: 10 * 1024 * 1024,
+      }),
+      onUploadCompleted: async () => {},
     });
-
-    return Response.json({ url: blob.url });
+    return Response.json(jsonResponse);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Upload failed";
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({ error: err instanceof Error ? err.message : "Upload failed" }, { status: 400 });
   }
 }
