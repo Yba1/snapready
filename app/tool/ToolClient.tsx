@@ -132,27 +132,29 @@ export default function ToolClient() {
     newJobs.forEach((job, i) => processJob(job.id, valid[i], job.localPreview));
   }, [processJob]);
 
-  const openSection = useCallback(async (jobId: string, section: Section, imageUrl: string) => {
-    let shouldFetch = false;
-    setJobs(prev => {
-      const job = prev.find(j => j.id === jobId);
-      if (!job) return prev;
-      const newSections = job.openSections.includes(section) ? job.openSections : [...job.openSections, section];
-      if (!job.listing && job.listingStatus === "idle") {
-        shouldFetch = true;
-        return prev.map(j => j.id === jobId ? { ...j, openSections: newSections, listingStatus: "loading" } : j);
-      }
-      return prev.map(j => j.id === jobId ? { ...j, openSections: newSections } : j);
-    });
-    if (!shouldFetch) return;
+  const openSection = useCallback(async (job: ImageJob, section: Section) => {
+    const { id: jobId, result, listing, listingStatus } = job;
+    if (!result) return;
+
+    // Always open the section immediately
+    setJobs(prev => prev.map(j => j.id === jobId
+      ? { ...j, openSections: j.openSections.includes(section) ? j.openSections : [...j.openSections, section] }
+      : j
+    ));
+
+    // Skip fetch if already loaded or in flight
+    if (listing || listingStatus !== "idle") return;
+
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, listingStatus: "loading" } : j));
     try {
       const res = await fetch("/api/describe", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl }),
+        body: JSON.stringify({ imageUrl: result.processedUrl }),
+        signal: AbortSignal.timeout(30_000),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
-      const listing = await res.json();
-      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, listing, listingStatus: "done" } : j));
+      const data = await res.json();
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, listing: data, listingStatus: "done" } : j));
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed";
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, listingStatus: "error", error: msg } : j));
@@ -291,7 +293,7 @@ export default function ToolClient() {
         <BatchView
           jobs={jobs} doneCount={doneCount} depopToken={depopToken}
           onReset={handleReset} onAddMore={() => fileInputRef.current?.click()}
-          onDownloadAll={downloadAll} onOpenSection={openSection}
+          onDownloadAll={downloadAll} onOpenSection={(job, section) => openSection(job, section)}
           onPostToDepop={requestDepopPost} onShareCard={generateShareCard}
         />
       )}
@@ -425,7 +427,7 @@ function Dropzone({ onFiles, onPickFiles }: { onFiles: (f: File[]) => void; onPi
 function BatchView({ jobs, doneCount, depopToken, onReset, onAddMore, onDownloadAll, onOpenSection, onPostToDepop, onShareCard }: {
   jobs: ImageJob[]; doneCount: number; depopToken: string | null;
   onReset: () => void; onAddMore: () => void; onDownloadAll: () => void;
-  onOpenSection: (jobId: string, section: Section, imageUrl: string) => void;
+  onOpenSection: (job: ImageJob, section: Section) => void;
   onPostToDepop: (jobId: string) => void;
   onShareCard: (job: ImageJob) => void;
 }) {
@@ -467,7 +469,7 @@ function BatchView({ jobs, doneCount, depopToken, onReset, onAddMore, onDownload
 /* ── Job card ── */
 function JobCard({ job, onOpenSection, onPostToDepop, onShareCard }: {
   job: ImageJob;
-  onOpenSection: (jobId: string, section: Section, imageUrl: string) => void;
+  onOpenSection: (job: ImageJob, section: Section) => void;
   onPostToDepop: (jobId: string) => void;
   onShareCard: (job: ImageJob) => void;
 }) {
@@ -568,7 +570,7 @@ function JobCard({ job, onOpenSection, onPostToDepop, onShareCard }: {
               return (
                 <button key={section} className="pill pill-ghost"
                   style={{ padding: "8px 10px", fontSize: 12, justifyContent: "center", opacity: isLoading && !open ? 0.5 : 1, flex: 1 }}
-                  onClick={() => onOpenSection(job.id, section, job.result!.processedUrl)}
+                  onClick={() => onOpenSection(job, section)}
                   disabled={isLoading}>
                   {isLoading && !open
                     ? <><span className="dots"><span /><span /><span /></span></>
